@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Riwayat Absensi – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="container">
+
+<div class="page-header animate-in">
+    <h2><i class="bi bi-clock-history" style="color:var(--gold)"></i> Riwayat Absensi</h2>
+    <p class="subtitle">Seluruh riwayat kehadiran karyawan</p>
+</div>
+
+<div class="card-elohim animate-in" style="animation-delay:.1s">
+    <div class="card-header">
+        <i class="bi bi-table"></i>
+        Daftar Kehadiran
+        <a href="{{ url_for('admin.export_pdf') }}" class="btn-export ms-auto">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+        </a>
+    </div>
+    <div class="card-body">
+        {% if absensis %}
+        <div class="table-responsive">
+            <table class="table-elohim" id="riwayatTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Karyawan</th>
+                        <th>Tanggal</th>
+                        <th>Jam Masuk</th>
+                        <th>Jam Pulang</th>
+                        <th>Status</th>
+                        <th>Foto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in absensis %}
+                <tr>
+                    <td class="text-muted" style="width:36px">{{ loop.index }}</td>
+                    <td>
+                        <span class="status-dot {{ a.status }}"></span>
+                        {{ a.user.nama }}
+                    </td>
+                    <td><span class="small fw-semibold">{{ a.tanggal.strftime('%d/%m/%Y') }}</span></td>
+                    <td>
+                        {% if a.jam_masuk %}
+                            <span class="fw-bold" style="color:var(--success)">{{ a.jam_masuk.strftime('%H:%M') }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if a.jam_pulang %}
+                            <span class="fw-bold" style="color:var(--info)">{{ a.jam_pulang.strftime('%H:%M') }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if a.status == 'hadir' %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle-fill me-1"></i>Hadir</span>
+                        {% elif a.status == 'terlambat' %}
+                            <span class="badge badge-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Terlambat</span>
+                        {% else %}
+                            <span class="badge badge-neutral">{{ a.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set foto_filename = a.foto_masuk if not a.jam_pulang else (a.foto_pulang or a.foto_masuk) %}
+                        {% if foto_filename %}
+                            <a href="{{ url_for('static', filename='uploads/' + foto_filename) }}" target="_blank">
+                                <img src="{{ url_for('static', filename='uploads/' + foto_filename) }}"
+                                     class="photo-thumb" alt="foto absensi" loading="lazy">
+                            </a>
+                        {% else %}
+                            <span class="text-muted small"><i class="bi bi-image-slash"></i></span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon"><i class="bi bi-inbox"></i></span>
+            <p>Belum ada data riwayat absensi.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</div><!-- /.container -->
+{% endblock %}

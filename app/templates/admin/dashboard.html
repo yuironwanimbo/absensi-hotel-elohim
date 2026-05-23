@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="container">
+<style>
+  /* stat mini */
+  .smini { font-size: .8rem; font-weight: 700; color: var(--muted);
+            text-transform: uppercase; letter-spacing: .6px; }
+  /* action icons */
+  .act-btn { cursor:pointer; border:none; background:none;
+             color:var(--slate); font-size:1rem; padding:.2rem .45rem;
+             border-radius:6px; transition: all .15s; line-height:1; }
+  .act-btn:hover { color:#fff; background:var(--navy); }
+  .act-btn.text-danger { color: var(--danger); }
+  .act-btn.text-success { color: var(--success); }
+  /* nav pills */
+  .tab-pill { border:none; border-radius:50px; font-weight:600; font-size:.875rem;
+              padding:.55rem 1.2rem; color:var(--muted); }
+  .tab-pill.active { background:var(--navy); color:#fff; }
+  /* card badge */
+  .cv { font-size: 2rem; font-weight:800; color:var(--navy); line-height:1.1; }
+</style>
+
+<div class="page-header animate-in">
+    <h2><i class="bi bi-speedometer2" style="color:var(--gold)"></i> Dashboard Admin</h2>
+    <p class="subtitle" id="today-header">
+        {{ today_label }} &nbsp;|&nbsp;
+        <strong style="color:var(--navy)">{{ settings.nama_hotel }}</strong>
+    </p>
+</div>
+
+<!-- ════ TABS ════ -->
+<ul class="nav nav-pills mb-4 gap-2 animate-in" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="tab-pill active" data-bs-toggle="pill" data-bs-target="#tab-ringkasan" type="button"
+                role="tab"><i class="bi bi-speedometer2 me-1"></i>Ringkasan</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="tab-pill" data-bs-toggle="pill" data-bs-target="#tab-karyawan" type="button"
+                role="tab"><i class="bi bi-people me-1"></i>Karyawan</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="tab-pill" data-bs-toggle="pill" data-bs-target="#tab-settings" type="button"
+                role="tab"><i class="bi bi-gear me-1"></i>Pengaturan</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link text-muted ms-auto" href="{{ url_for('admin.riwayat') }}"
+           style="font-size:.85rem;font-weight:600;align-self:center">
+            <i class="bi bi-clock-history"></i> Riwayat
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content animate-in">
+
+<!-- ═══════════════ TAB 1 – Ringkasan ═══════════════ -->
+<div class="tab-pane fade show active" id="tab-ringkasan" role="tabpanel">
+
+  <!-- Stat row -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card blue">
+        <span class="stat-icon"><i class="bi bi-people"></i></span>
+        <div class="smini">Total Karyawan</div>
+        <div class="cv">{{ total_karyawan }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card green">
+        <span class="stat-icon"><i class="bi bi-door-open"></i></span>
+        <div class="smini">Sudah Masuk</div>
+        <div class="cv">{{ hadir_count }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card blue">
+        <span class="stat-icon"><i class="bi bi-box-arrow-right"></i></span>
+        <div class="smini">Sudah Pulang</div>
+        <div class="cv">{{ pulang_count }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="stat-card red">
+        <span class="stat-icon"><i class="bi bi-alarm"></i></span>
+        <div class="smini">Terlambat</div>
+        <div class="cv">{{ terlambat_count }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="card-elohim mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="smini mb-0">Kadar Kehadiran Hari Ini</span>
+        <strong style="color:var(--navy)">{{ pct }}%</strong>
+      </div>
+      <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--success),#2ecc71);border-radius:5px;transition:width 1s ease"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's attendance table -->
+  <div class="card-elohim">
+    <div class="card-header">
+      <i class="bi bi-table"></i> Absensi Hari Ini
+    </div>
+    <div class="card-body p-0">
+      {% if absensis %}
+      <div class="table-responsive">
+        <table class="table-elohim mb-0">
+          <thead>
+            <tr>
+              <th>#</th><th>Karyawan</th><th>Jam Masuk</th><th>Jam Pulang</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for a in absensis %}
+          <tr>
+            <td class="text-muted" style="width:36px">{{ loop.index }}</td>
+            <td><span class="status-dot {{ a.status }}"></span>{{ a.user.nama }}</td>
+            <td>{% if a.jam_masuk %}<span style="font-weight:600;color:var(--navy)">{{ a.jam_masuk.strftime('%H:%M') }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+            <td>{% if a.jam_pulang %}<span style="font-weight:600;color:var(--info)">{{ a.jam_pulang.strftime('%H:%M') }}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+            <td>
+              {% if a.status == 'hadir' %}
+                <span class="badge badge-success"><i class="bi bi-check-circle-fill me-1"></i>Hadir</span>
+              {% elif a.status == 'terlambat' %}
+                <span class="badge badge-warning"><i class="bi bi-exclamation-triangle-fill me-1"></i>Terlambat</span>
+              {% else %}
+                <span class="badge badge-neutral">{{ a.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><span class="empty-icon"><i class="bi bi-calendar-x"></i></span><p>Belum ada absensi hari ini.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+</div><!-- /tab-ringkasan -->
+
+<!-- ═══════════════ TAB 2 – Karyawan ═══════════════ -->
+<div class="tab-pane fade" id="tab-karyawan" role="tabpanel">
+
+  <!-- Action bar -->
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2 flex-grow-1">
+      <i class="bi bi-search text-muted"></i>
+      <input type="text" id="kSearch" class="form-control form-control-sm"
+             placeholder="Cari nama atau email karyawan…">
+    </div>
+    <button class="btn btn-elohim btn-success-elohim btn-sm" data-bs-toggle="modal" data-bs-target="#modalAdd">
+      <i class="bi bi-person-plus"></i> Tambah Karyawan
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="card-elohim">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table-elohim mb-0" id="kTable">
+          <thead>
+<tr>
+               <th>#</th>
+               <th>Karyawan</th>
+               <th>Email</th>
+               <th>Role</th>
+               <th>Jam Masuk</th>
+               <th>Jam Pulang</th>
+               <th>PIN</th>
+               <th>Kredensi</th>
+               <th>Status</th>
+               <th style="width:150px">Aksi</th>
+             </tr>
+          </thead>
+          <tbody>
+          {% for k in karyawans %}
+          <tr id="kr-{{ k.id }}">
+            <td class="text-muted" style="width:40px">{{ loop.index }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div style="width:34px;height:34px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <i class="bi bi-person-fill" style="font-size:.9rem;color:#fff"></i>
+                </div>
+                <input type="text" class="form-control form-control-sm border-0 bg-transparent fw-semibold"
+                       style="cursor:pointer" value="{{ k.nama }}" readonly
+                       data-orig="{{ k.nama }}" id="edit-nama-{{ k.id }}">
+                </div>
+            </td>
+            <td>
+              <input type="email" class="form-control form-control-sm"
+                     style="font-size:.82rem;min-width:200px"
+                     value="{{ k.email }}" id="edit-email-{{ k.id }}">
+            </td>
+            <td>
+              <select class="form-select form-select-sm" style="font-size:.82rem"
+                      id="edit-role-{{ k.id }}">
+                <option value="karyawan" {% if k.role=='karyawan'%}selected{%endif%}>Karyawan</option>
+                <option value="admin"    {% if k.role=='admin'%}selected{%endif%}>Admin</option>
+                <option value="hrd"      {% if k.role=='hrd'%}selected{%endif%}>HRD</option>
+              </select>
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm"
+                     style="font-size:.82rem;width:90px"
+                     placeholder="08:00" value="{{ k.jadwal_masuk or '' }}"
+                     id="edit-jm-{{ k.id }}">
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm"
+                     style="font-size:.82rem;width:90px"
+                     placeholder="17:00" value="{{ k.jadwal_pulang or '' }}"
+                     id="edit-jp-{{ k.id }}">
+            </td>
+<td>
+               <span id="pin-val-{{ k.id }}">
+                 {{ '••••' if k.pin else '-' }}
+               </span>
+             </td>
+             <td>
+               <span id="cred-val-{{ k.id }}" class="small text-muted" style="font-size:.8rem;cursor:pointer" onclick="showCred({{ k.id }})">
+                 <i class="bi bi-eye"></i> Lihat kredensi
+               </span>
+             </td>
+             <td>
+              <div id="aktif-wrap-{{ k.id }}">
+                {% if k.aktif %}
+                  <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Aktif</span>
+                {% else %}
+                  <span class="badge badge-danger"><i class="bi bi-x-circle-fill"></i> Non-aktif</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+
+                <!-- PIN reveal / change -->
+                <button class="act-btn" title="Ganti PIN"
+                        onclick="changePin({{ k.id }}, this,'{{ k.nama }}')">
+                  <i class="bi bi-lock"></i>
+                </button>
+
+                <!-- Toggle aktif -->
+                <button class="act-btn"
+                        title="{{ 'Nonaktifkan' if k.aktif else 'Aktifkan' }}"
+                        onclick="toggleAktif({{ k.id }})">
+                  <i class="bi {% if k.aktif %}bi-dash-circle{% else %}bi-check-circle{% endif %}"></i>
+                </button>
+
+                <!-- Save row -->
+                <button class="act-btn text-success" title="Simpan perubahan"
+                        onclick="saveRow({{ k.id }})">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+
+                <!-- Delete -->
+                <button class="act-btn text-danger" title="Hapus karyawan"
+                        onclick="deleteRow({{ k.id }}, {{ k.nama | tojson }})"
+                        {% if k.id == current_user.id %}disabled{% endif %}>
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9"><div class="empty-state"><p>Belum ada karyawan.</p></div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /tab-karyawan -->
+
+<!-- ═══════════════ TAB 3 – Pengaturan ═══════════════ -->
+<div class="tab-pane fade" id="tab-settings" role="tabpanel">
+  <div class="card-elohim" style="max-width:720px">
+    <div class="card-header">
+      <i class="bi bi-sliders"></i> Pengaturan Hotel &amp; Jam Kerja
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.save_settings') }}"
+            class="row g-3">
+        {% for field in [
+          ('nama_hotel',    'Nama Hotel',     'text',    settings.nama_hotel),
+          ('jam_masuk',     'Jam Masuk',      'time',    settings.jam_masuk),
+          ('jam_pulang',    'Jam Pulang',     'time',    settings.jam_pulang),
+          ('hotel_lat',     'Latitude Hotel', 'number',  settings.hotel_lat),
+          ('hotel_lng',     'Longitude Hotel','number',  settings.hotel_lng),
+          ('radius_meters', 'Radius GPS (m)', 'number',  settings.radius_meters),
+        ] %}
+        {% set fname, label, input_type, val = field %}
+        <div class="col-sm-6">
+          <label class="form-label" for="s-{{ fname }}">{{ label }}</label>
+          <input type="{{ input_type }}" class="form-control"
+                 id="s-{{ fname }}" name="{{ fname }}"
+                 step="{{ 'any' if input_type=='number' else '' }}"
+                 value="{{ val }}">
+        </div>
+        {% endfor %}
+        <div class="col-12">
+          <button class="btn btn-elohim btn-primary-elohim" type="submit">
+            <i class="bi bi-check-lg"></i> Simpan Pengaturan
+          </button>
+          <span class="text-muted small ms-2">
+            Terakhir diubah: {{ settings.updated_at.strftime('%d/%m/%Y %H:%M') if settings.updated_at else '-' }}
+          </span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div><!-- /tab-settings -->
+
+</div><!-- /tab-content -->
+</div><!-- /.container -->
+
+<!-- ═══════ MODAL – Tambah Karyawan ═══════ -->
+<div class="modal fade" id="modalAdd" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-elohim">
+      <form method="POST" action="{{ url_for('admin.karyawan_add') }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus" style="color:var(--gold)"></i> Tambah Karyawan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {% for f in [
+            ('nama','text',         'Nama Lengkap',         ''),
+            ('email','email',       'Email',                 ''),
+            ('password','password', 'Password',              ''),
+            ('pin','text',          'PIN (opsional)',         ''),
+            ('jadwal_masuk','text',  'Jam Masuk',             '08:00'),
+            ('jadwal_pulang','text', 'Jam Pulang',            '17:00'),
+          ] %}
+          {% set fid = f[0] %}{% set ftype = f[1] %}{% set flabel = f[2] %}{% set fval = f[3] %}
+          <div class="mb-2">
+            <label class="form-label" for="add-{{ fid }}">{{ flabel }}</label>
+            {% if ftype == 'select' %}
+            <select class="form-select" id="add-{{ fid }}" name="{{ fid }}">
+              {% for opt in f[4] %}
+              <option value="{{ opt }}" {% if opt==fval %}selected{% endif %}>{{ opt|title }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input type="{{ ftype }}" class="form-control" id="add-{{ fid }}" name="{{ fid }}"
+                   value="{{ fval }}">
+            {% endif %}
+          </div>
+          {% endfor %}
+          <div class="mb-2">
+            <label class="form-label" for="add-role">Role</label>
+            <select class="form-select" id="add-role" name="role"
+                    style="font-size:.87rem;padding:.38rem .75rem">
+              <option value="karyawan">Karyawan</option>
+              <option value="admin">Admin</option>
+              <option value="hrd">HRD</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-elohim btn-outline-elohim btn-sm" type="button" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-elohim btn-success-elohim btn-sm" type="submit">
+            <i class="bi bi-check-lg"></i> Simpan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ HIDDEN FORM – Delete ═══════ -->
+<form id="formDelete" method="POST"><input type="hidden" name="_method" value="DELETE"></form>
+
+<script>
+const CSRF = '{{ csrf_token() if csrf_token else "" }}'; // Flask-WTF token if used
+
+/* ── Search ── */
+document.getElementById('kSearch').addEventListener('input', function(){
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#kTable tbody tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+/* ── Save single row ── */
+async function saveRow(id) {
+  const nama  = document.getElementById('edit-nama-'+id).value;
+  const email = document.getElementById('edit-email-'+id).value;
+  const role  = document.getElementById('edit-role-'+id).value;
+  const jm    = document.getElementById('edit-jm-'+id).value;
+  const jp    = document.getElementById('edit-jp-'+id).value;
+  try {
+    const res = await fetch("{{ url_for('admin.karyawan_update', kid=0) }}".replace('/0',`/${id}`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Requested-With': 'XMLHttpRequest',
+                 'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'},
+      body: JSON.stringify({ nama, email, role, jadwal_masuk: jm, jadwal_pulang: jp })
+    });
+    if (res.ok) {
+      const notify = document.createElement('div');
+      notify.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x';
+      notify.style.cssText = 'z-index:9999;margin-top:70px;min-width:260px';
+      notify.innerHTML = '<i class="bi bi-check-circle-fill"></i> Disimpan!';
+      document.body.appendChild(notify);
+      setTimeout(() => notify.remove(), 2000);
+    } else { alert('Gagal menyimpan. Pastikan tidak ada error.'); }
+  } catch(e){ alert('Gagal menyimpan: '+e.message); }
+}
+
+/* ── Change PIN ── */
+const _origPinVal = {};
+function changePin(id, btn, nama) {
+  if (_origPinVal[id] === undefined) {
+    _origPinVal[id] = document.getElementById('pin-val-'+id).textContent;
+  }
+  const cur = document.getElementById('pin-val-'+id);
+  cur.innerHTML = `<form onsubmit="submitPin(event,${id})" style="display:inline">
+    <input class="form-control form-control-sm d-inline" style="width:80px;padding:.2rem .4rem;font-size:.78rem"
+           placeholder="PIN baru" maxlength="6" id="pinInput-${id}" autofocus required>
+    <button class="btn btn-sm btn-success-elohim" type="submit"><i class="bi bi-check"></i></button>
+    <button class="btn btn-sm btn-outline-elohim" type="button"
+            onclick="document.getElementById('pin-val-${id}').textContent=_origPinVal[${id}]"><i class="bi bi-x"></i></button>
+  </form>`;
+  const inp = document.getElementById('pinInput-'+id);
+  if(inp) inp.focus();
+}
+
+async function submitPin(e, id) {
+  e.preventDefault();
+  const val = document.getElementById('pinInput-'+id).value;
+  const res = await fetch("{{ url_for('admin.karyawan_ganti_password', kid=0) }}".replace('/0',`/${id}`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json',
+               'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ new_password: val })
+  });
+  const d = await res.json();
+  alert(d.message || (res.ok ? 'PIN berhasil diubah' : 'Gagal'));
+  if (res.ok) location.reload();
+}
+
+/* ── Toggle aktif ── */
+async function toggleAktif(id) {
+  const res = await fetch("{{ url_for('admin.karyawan_toggle', kid=0) }}".replace('/0',`/${id}`), {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  });
+  const d = await res.json();
+  if (d.success) location.reload(); else alert(d.message);
+}
+
+/* ── Show Credentials ── */
+async function showCred(id) {
+  const el = document.getElementById('cred-val-'+id);
+  if (el.dataset.loaded) {
+    el.innerHTML = '<i class="bi bi-eye-slash"></i> Klik untuk sembunyikan';
+    el.dataset.loaded = '';
+    return;
+  }
+  const res = await fetch("{{ url_for('admin.get_credentials', kid=0) }}".replace('/0',`/${id}`), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  });
+  const d = await res.json();
+  if (d.success) {
+    el.innerHTML = `<div class="small"><strong>Email:</strong> ${d.email}<br><strong>Password:</strong> ${d.password}</div>`;
+    el.dataset.loaded = '1';
+  } else {
+    alert('Gagal mengambil kredensi');
+  }
+}
+
+/* ── Delete ── */
+function deleteRow(id, nama) {
+  if (!confirm(`Hapus karyawan "${nama}"?`)) return;
+  const form = document.getElementById('formDelete');
+  form.action = "{{ url_for('admin.karyawan_delete', kid=0) }}".replace('/0',`/${id}`);
+  form.submit();
+}
+
+/* ── Highlight open tab on load ── */
+window.addEventListener('load',() => {
+  const hash = location.hash;
+  if (hash && hash !== '#tab-ringkasan') {
+    const btn = document.querySelector(`button[data-bs-target="${hash}"]`);
+    if (btn) { const triggerEl = document.querySelector('[data-bs-toggle="pill"]'); if(triggerEl){ bootstrap.Tab.getOrCreateInstance(btn).show(); } }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Login – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+    <div class="login-card animate-in">
+        <!-- Brand -->
+        <div class="login-brand">
+            <div class="hotel-name"><img src="{{ url_for('static', filename='logos/logo-elohim.png') }}" alt="Elohim Hotel" class="login-logo-img"> Elohim<span style="color:var(--gold)">Hotel</span></div>
+            <div class="hotel-sub">Sistem Informasi Absensi Karyawan</div>
+        </div>
+
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.email.id }}">
+                    <i class="bi bi-envelope me-1"></i>{{ form.email.label.text }}
+                </label>
+                {{ form.email(class="form-control", placeholder="nama@elohimhotel.com") }}
+                {% for err in form.email.errors %}
+                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle-fill"></i> {{ err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.password.id }}">
+                    <i class="bi bi-lock me-1"></i>{{ form.password.label.text }}
+                </label>
+                {{ form.password(class="form-control", placeholder="••••••••") }}
+                {% for err in form.password.errors %}
+                    <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle-fill"></i> {{ err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-4 form-check" style="padding-left:0">
+                <label class="form-check-label" style="font-size:.88rem;color:var(--muted)" for="{{ form.remember.id }}">
+                    {{ form.remember(class="form-check-input", style="accent-color:var(--gold)") }}
+                    Ingat saya di perangkat ini
+                </label>
+            </div>
+
+            {{ form.submit(class="btn btn-success-elohim btn-elohim w-100 py-2") }}
+        </form>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">Demo: admin@hotel.com / admin123</small>
+        </div>
+    </div>
+</div>
+{% endblock %}

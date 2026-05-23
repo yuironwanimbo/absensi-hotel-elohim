@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Daftar Karyawan – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+    <div class="login-card animate-in" style="max-width:420px">
+        <div class="login-brand">
+            <div class="hotel-name"><i class="bi bi-person-plus" style="color:var(--gold)"></i> Daftar Karyawan</div>
+            <div class="hotel-sub">Isi data untuk mendaftar absensi</div>
+        </div>
+
+        <form method="POST" novalidate>
+            <div class="mb-3">
+                <label class="form-label"><i class="bi bi-person me-1"></i>Nama Lengkap</label>
+                <input type="text" name="nama" class="form-control" placeholder="Nama lengkap Anda" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><i class="bi bi-envelope me-1"></i>Email</label>
+                <input type="email" name="email" class="form-control" placeholder="email@contoh.com" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><i class="bi bi-lock me-1"></i>Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Minimal 4 karakter" required minlength="4">
+            </div>
+            <button class="btn btn-success-elohim btn-elohim w-100 py-2">
+                <i class="bi bi-check-lg me-1"></i> Daftar Sekarang
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <small>Sudah punya akun? <a href="{{ url_for('auth.login') }}" style="color:var(--gold)">Login di sini</a></small>
+        </div>
+    </div>
+</div>
+{% endblock %}

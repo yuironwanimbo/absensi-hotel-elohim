@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Elohim Hotel{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════  NAVBAR  ════ -->
+<nav class="navbar navbar-expand-lg navbar-elohim sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='logos/logo-elohim.png') }}" alt="Elohim Hotel" class="navbar-logo-img">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false"
+                aria-label="Toggle navigation"
+                style="border-color:rgba(201,168,76,.4)">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            {% if current_user.is_authenticated %}
+            <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <li class="nav-item">
+                    <span class="navbar-text"><i class="bi bi-person-circle"></i> {{ current_user.nama }}</span>
+                </li>
+                {% if current_user.role in ['admin','hrd'] %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.riwayat') }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.karyawan') }}">
+                        <i class="bi bi-people"></i> Karyawan
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link text-warning-emphasis" href="{{ url_for('auth.logout') }}">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </li>
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- ═══════════════════════════════════════  FLASH MESSAGES  ════ -->
+<div class="container mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="bi bi-{% if 'success' in category %}check-circle-fill{% elif 'danger' in category %}exclamation-triangle-fill{% elif 'warning' in category %}exclamation-circle-fill{% else %}info-circle-fill{% endif %} me-1"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- ═══════════════════════════════════════  CONTENT  ════ -->
+<main class="flex-fill">
+{% block content %}{% endblock %}
+</main>
+
+<!-- ═══════════════════════════════════════  FOOTER  ════ -->
+<footer class="footer-elohim">
+    <div class="container">
+        <img src="{{ url_for('static', filename='logos/logo-elohim.png') }}" alt="Elohim Hotel" class="footer-logo-img"> Elohim Hotel — Sistem Absensi &copy; {{ moment().year if moment else '2026' }}
+    </div>
+</footer>
+
+<!-- ═══════════════════════════════════════  SCRIPTS  ════ -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

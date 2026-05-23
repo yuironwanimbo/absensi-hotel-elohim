@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="container">
+
+<!-- ── Page Header ── -->
+<div class="page-header animate-in" style="animation-delay:.05s">
+    <h2>
+        <i class="bi bi-building" style="color:var(--gold)"></i>
+        Selamat Datang, {{ current_user.nama }}
+    </h2>
+    <p class="subtitle">{{ current_user.role|title }} &nbsp;·&nbsp;
+        <span id="today-badge" class="badge badge-neutral">{{ today_label }}</span>
+    </p>
+</div>
+
+<!-- ── Admin / HRD Quick Navigation ── -->
+{% if current_user.role in ['admin','hrd'] %}
+<div class="section-label animate-in" style="animation-delay:.1s">Menu Administrator</div>
+<div class="row g-3 mb-4 animate-in" style="animation-delay:.15s">
+    <div class="col-sm-4">
+        <a href="{{ url_for('admin.dashboard') }}" class="nav-card primary">
+            <span class="nav-icon"><i class="bi bi-speedometer2"></i></span>
+            <span class="nav-label">Dashboard Admin</span>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a href="{{ url_for('admin.riwayat') }}" class="nav-card success">
+            <span class="nav-icon"><i class="bi bi-clock-history"></i></span>
+            <span class="nav-label">Riwayat Absensi</span>
+        </a>
+    </div>
+    <div class="col-sm-4">
+        <a href="{{ url_for('admin.karyawan') }}" class="nav-card navy">
+            <span class="nav-icon"><i class="bi bi-people"></i></span>
+            <span class="nav-label">Kelola Karyawan</span>
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Attendance Card ── -->
+<div class="card-elohim animate-in" style="animation-delay:.25s">
+    <div class="card-header">
+        <i class="bi bi-calendar-check"></i>
+        Absensi Hari Ini
+    </div>
+    <div class="card-body">
+        {% if absen %}
+            {% if absen.jam_masuk %}
+                <div class="row g-4 align-items-center">
+                    <!-- Jam Masuk -->
+                    <div class="col-md-5">
+                        <div class="att-card">
+                            <h6><i class="bi bi-door-open"></i> Jam Masuk</h6>
+                            <div class="att-time">{{ absen.jam_masuk.strftime('%H:%M') }}</div>
+                            <span class="att-badge {{ 'terlambat' if absen.status == 'terlambat' else 'hadir' }}">
+                                {% if absen.status == 'terlambat' %}
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Terlambat
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill"></i> Hadir
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <!-- Divider -->
+                    <div class="col-md-2 d-none d-md-flex justify-content-center">
+                        <div style="display:flex;align-items:center;height:100%">
+                            <div style="width:3px;height:80px;background:var(--gold);border-radius:2px;opacity:.4"></div>
+                        </div>
+                    </div>
+                    <!-- Jam Pulang -->
+                    <div class="col-md-5">
+                        {% if absen.jam_pulang %}
+                            <div class="att-card">
+                                <h6><i class="bi bi-door-closed"></i> Jam Pulang</h6>
+                                <div class="att-time" style="color:var(--info)">{{ absen.jam_pulang.strftime('%H:%M') }}</div>
+                                <span class="att-badge" style="background:#e8f4fd;color:var(--info)">
+                                    <i class="bi bi-check-circle-fill"></i> Pulang
+                                </span>
+                            </div>
+                        {% else %}
+                            <button class="btn-pulang w-100" onclick="absenPulang()">
+                                <i class="bi bi-camera-fill"></i> Absen Pulang
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <!-- Belum absen masuk -->
+                <div class="text-center py-3">
+                    <i class="bi bi-camera-luts" style="font-size:3.5rem;color:var(--gold);opacity:.6;display:block;margin-bottom:1.5rem"></i>
+                    <button class="btn-masuk" onclick="absenMasuk()">
+                        <i class="bi bi-camera-fill fs-5"></i> Absen Masuk
+                    </button>
+                    <p class="text-muted mt-3 mb-0" style="font-size:.85rem">Klik untuk mengaktifkan kamera dan mengambil foto</p>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Belum ada absensi sama sekali -->
+            <div class="text-center py-3">
+                <i class="bi bi-camera-luts" style="font-size:3.5rem;color:var(--gold);opacity:.6;display:block;margin-bottom:1.5rem"></i>
+                <button class="btn-masuk" onclick="absenMasuk()">
+                    <i class="bi bi-camera-fill fs-5"></i> Absen Masuk
+                </button>
+                <p class="text-muted mt-3 mb-0" style="font-size:.85rem">Klik untuk mengaktifkan kamera dan mengambil foto</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+</div><!-- /.container -->
+
+<!-- ═══════════════════════════════════ CAMERA MODAL ════ -->
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-elohim">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-camera-video-fill" style="color:var(--gold)"></i> Absensi – Scan Wajah</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="camera-wrap mx-auto">
+                    <video id="video" width="540" height="405" autoplay playsinline muted></video>
+                    <div id="pose-guide" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:4px 12px;border-radius:12px;font-size:0.75rem">Posisikan wajah di dalam lingkaran</div>
+                    <button type="button" id="pauseBtn" class="btn btn-sm btn-warning pause-btn"
+                            onclick="togglePause()">
+                        <i class="bi bi-pause-fill"></i> Jeda
+                    </button>
+                </div>
+                <canvas id="canvas" style="display:none;"></canvas>
+                <div id="result" class="mt-3 text-danger small"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-elohim btn-primary-elohim" onclick="capturePhoto()">
+                    <i class="bi bi-camera-fill"></i> Ambil Foto
+                </button>
+                <button class="btn btn-elohim btn-outline-elohim" data-bs-dismiss="modal">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let video    = document.getElementById('video');
+let canvas   = document.getElementById('canvas');
+let context  = canvas.getContext('2d');
+let stream   = null;
+let currentAbsenType = 'masuk';
+const hotelLat = {{ config['HOTEL_LAT']|default(-2.576) }};
+const hotelLng = {{ config['HOTEL_LNG']|default(140.516) }};
+const radiusMeters = {{ config['RADIUS_METERS']|default(100) }};
+
+/* ─ Date badge ─ */
+const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const todayLabel = dayNames[new Date().getDay()] + ', ' +
+    new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+document.getElementById('today-badge') && (document.getElementById('today-badge').textContent = todayLabel);
+
+/* ─ Haversine distance ─ */
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const phi1 = Math.radians(lat1);
+    const phi2 = Math.radians(lat2);
+    const deltaPhi = Math.radians(lat2 - lat1);
+    const deltaLambda = Math.radians(lon2 - lon1);
+    const a = Math.sin(deltaPhi/2)**2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+Math.radians = function(degrees) { return degrees * Math.PI / 180; };
+
+/* ─ Check location before camera ─ */
+async function checkLocationFirst() {
+    return new Promise((resolve, reject) => {
+        // Skip location check jika HTTP (non-secure context)
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !/^(192\.168\.|10\.|172\.)/.test(location.hostname)) {
+            resolve({ within: true, skipped: true });
+            return;
+        }
+        if (!navigator.geolocation) {
+            resolve({ within: true });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const distance = haversineDistance(lat, lng, hotelLat, hotelLng);
+                if (distance <= radiusMeters) {
+                    resolve({ lat, lng, within: true });
+                } else {
+                    reject(`Anda di luar radius hotel (${Math.round(distance)}m). Radius maksimal ${radiusMeters}m.`);
+                }
+            },
+            (err) => {
+                if (err.code === 1) {
+                    resolve({ within: true });
+                } else {
+                    reject('Gagal mendapatkan lokasi: ' + err.message);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+}
+
+/* ─ Pause / Resume ─ */
+function resetPauseBtn() {
+    const btn = document.getElementById('pauseBtn');
+    if (!btn) return;
+    btn.className = 'btn btn-sm btn-warning pause-btn';
+    btn.innerHTML = '<i class="bi bi-pause-fill"></i> Jeda';
+}
+
+function togglePause() {
+    const btn = document.getElementById('pauseBtn');
+    if (!btn) return;
+    if (video.paused) {
+        video.play();
+        btn.className = 'btn btn-sm btn-warning pause-btn';
+        btn.innerHTML = '<i class="bi bi-pause-fill"></i> Jeda';
+    } else {
+        video.pause();
+        btn.className = 'btn btn-sm btn-danger pause-btn';
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Lanjut';
+    }
+}
+
+/* ─ Camera ─ */
+function startCamera() {
+    resetPauseBtn();
+    document.getElementById('result').textContent = '';
+    // Check if getUserMedia is available
+    if (!navigator) {
+        document.getElementById('result').innerHTML =
+            '<i class="bi bi-camera-x"></i> Browser tidak terdeteksi. Ini tidak seharusnya terjadi.';
+        return Promise.reject(new Error('Navigator not available'));
+    }
+    if (!navigator.mediaDevices) {
+        document.getElementById('result').innerHTML =
+            '<i class="bi bi-camera-x"></i> Browser tidak mendukung WebRTC. Jika Anda menggunakan Firefox, pastikan media.navigator.enabled adalah true di about:config. Jika menggunakan browser lain, perbarui ke versi terbaru atau gunakan Chrome, Firefox, Safari, atau Edge.';
+        return Promise.reject(new Error('getUserMedia not available'));
+    }
+    // Check if context is secure (required for getUserMedia in most browsers)
+    // Allow HTTP on local network (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const isLocalNetwork = /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(location.hostname);
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && !isLocalNetwork) {
+        document.getElementById('result').innerHTML =
+            '<i class="bi bi-camera-x"></i> Untuk mengakses kamera, gunakan HTTPS atau akses melalui localhost/127.0.0.1.';
+        return Promise.reject(new Error('Insecure context: getUserMedia requires HTTPS or localhost'));
+    }
+    return new Promise((resolve, reject) => {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width:{ideal:640}, height:{ideal:480} } })
+            .then(function(s) {
+                stream = s;
+                video.srcObject = s;
+                // Wait for video to be ready to play
+                const onLoadedMetadata = () => {
+                    video.removeEventListener('loadedmetadata', onLoadedMetadata);
+                    resolve();
+                };
+                const onError = (err) => {
+                    video.removeEventListener('error', onError);
+                    reject(err);
+                };
+                video.addEventListener('loadedmetadata', onLoadedMetadata);
+                video.addEventListener('error', onError);
+                // Play the video (required in some browsers)
+                video.play().catch(e => {
+                    // Autoplay might be prevented, but we can still use the video for capture
+                    console.warn('Autoplay prevented:', e);
+                });
+            })
+            .catch(function(err) {
+                console.error('Kamera gagal:', err.message);
+                document.getElementById('result').innerHTML =
+                    '<i class="bi bi-camera-x"></i> Kamera tidak bisa diakses. Tutup aplikasi lain yang menggunakan kamera lalu coba lagi.';
+                reject(err);
+            });
+    });
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+    }
+    video.srcObject = null;
+    resetPauseBtn();
+}
+
+/* ─ Geolocation ─ */
+function getLocation() {
+    return new Promise(function(resolve, reject) {
+        if (!navigator.geolocation) return reject('Geolocation tidak didukung');
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+        });
+    });
+}
+
+/* ─ Capture photo ─ */
+function capturePhoto() {
+    if (video.paused) { video.play(); resetPauseBtn(); }
+    
+    // Tunggu video siap dengan timeout
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    function tryCapture() {
+        const vw = video.videoWidth, vh = video.videoHeight;
+        attempts++;
+        
+        if (vw && vh) {
+            canvas.width = vw; canvas.height = vh;
+            context.drawImage(video, 0, 0, vw, vh);
+            canvas.toBlob(function(blob) {
+                const reader = new FileReader();
+                reader.onload = function() { submitAbsen(reader.result); };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.85);
+        } else if (attempts < maxAttempts) {
+            setTimeout(tryCapture, 100);
+        } else {
+            document.getElementById('result').textContent = 'Kamera tidak merespons. Coba tutup dan buka kembali.';
+        }
+    }
+    
+    tryCapture();
+}
+
+/* ─ Submit attendance ─ */
+async function submitAbsen(foto_base64) {
+    let latitude = null, longitude = null;
+    document.getElementById('result').innerHTML =
+        '<span class="spinner-border spinner-border-sm text-primary me-1" role="status"></span>Mengirim data...';
+    try {
+        const pos = await getLocation();
+        latitude  = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+    } catch (err) {
+        console.warn('GPS tidak tersedia:', err.message);
+    }
+
+    const data = { latitude: latitude, longitude: longitude, foto: foto_base64 };
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('cameraModal'));
+    modal.hide();
+
+    const endpoint = currentAbsenType === 'masuk' ? '/absen/masuk' : '/absen/pulang';
+
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        alert(result.message);
+        if (result.success) location.reload();
+    } catch (err) {
+        alert('Gagal mengirim data: ' + err.message);
+    }
+}
+
+/* ─ Open modals ─ */
+async function absenMasuk() { 
+    currentAbsenType = 'masuk';
+    try {
+        await checkLocationFirst();
+        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+        modal.show();
+        await startCamera();
+    } catch (err) {
+        alert(err);
+    }
+}
+async function absenPulang() { 
+    currentAbsenType = 'pulang'; 
+    try {
+        await checkLocationFirst();
+        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+        modal.show();
+        await startCamera();
+    } catch (err) {
+        alert(err);
+    }
+}
+
+/* ─ Modal events ─ */
+document.getElementById('cameraModal').addEventListener('hidden.bs.modal',  stopCamera);
+document.getElementById('cameraModal').addEventListener('shown.bs.modal',   resetPauseBtn);
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Karyawan – Elohim Hotel{% endblock %}
+
+{% block content %}
+<div class="container">
+
+<div class="page-header animate-in">
+    <h2><i class="bi bi-people" style="color:var(--gold)"></i> Daftar Karyawan</h2>
+    <p class="subtitle">Total {{ karyawans | length }} karyawan terdaftar di Elohim Hotel</p>
+</div>
+
+<div class="row g-3">
+    {% for k in karyawans %}
+    {% set absen = today_absen_map.get(k.id) %}
+    <div class="col-sm-6 col-lg-4 col-xl-3 animate-in" style="animation-delay:{{ loop.index0 * 0.06 }}s">
+        <div class="stat-card" style="text-align:center;padding:1.5rem 1.25rem">
+
+            <!-- Avatar -->
+            <div style="width:64px;height:64px;border-radius:50%;
+                background:linear-gradient(135deg,var(--navy),var(--slate));
+                margin:0 auto 1rem;display:flex;align-items:center;justify-content:center">
+                <i class="bi bi-person-fill" style="font-size:1.8rem;color:#fff"></i>
+            </div>
+
+            <!-- Nama & Role -->
+            <div class="mb-1" style="font-weight:700;font-size:1rem;color:var(--navy)">{{ k.nama }}</div>
+            <div class="small text-muted mb-2">{{ k.email }}</div>
+            <span class="badge {% if k.role == 'admin' %}badge-danger{% elif k.role == 'hrd' %}badge-info{% else %}badge-neutral{% endif %} mb-3">
+                {{ k.role|upper }}
+            </span>
+
+            <!-- Status hari ini -->
+            <div class="mb-3">
+                {% if absen and absen.jam_masuk %}
+                    {% if absen.jam_pulang %}
+                        <span class="badge badge-success" style="font-size:.85rem">
+                            <i class="bi bi-check-circle-fill"></i> Pulang — {{ absen.jam_pulang.strftime('%H:%M') }}
+                        </span>
+                    {% else %}
+                        <span class="badge badge-warning" style="font-size:.85rem">
+                            <i class="bi bi-clock-fill"></i> Masuk {{ absen.jam_masuk.strftime('%H:%M') }}
+                        </span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge badge-neutral" style="font-size:.85rem">
+                        <i class="bi bi-dash-circle"></i> Belum absen
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2">
+                {% if not absen or not absen.jam_masuk %}
+                    <button class="btn btn-elohim btn-success-elohim btn-sm"
+                            onclick="doAbsen({{ k.id }}, 'masuk', this)">
+                        <i class="bi bi-camera-fill"></i> Absen Masuk
+                    </button>
+                {% elif not absen.jam_pulang %}
+                    <button class="btn btn-elohim btn-primary-elohim btn-sm"
+                            onclick="doAbsen({{ k.id }}, 'pulang', this)">
+                        <i class="bi bi-camera-fill"></i> Absen Pulang
+                    </button>
+                {% else %}
+                    <button class="btn btn-elohim btn-outline-elohim btn-sm" disabled>
+                        <i class="bi bi-check2-all"></i> Sudah selesai
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card-elohim">
+            <div class="empty-state">
+                <span class="empty-icon"><i class="bi bi-person-x"></i></span>
+                <p>Belum ada karyawan terdaftar.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</div><!-- /.container -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ─ Record attendance on behalf of a karyawan ─ */
+async function doAbsen(karyawanId, tipe, btn) {
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+    let latitude = null, longitude = null;
+    try {
+        const pos = await new Promise(function(resolve, reject) {
+            if (!navigator.geolocation) return reject('GPS tidak didukung');
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+            });
+        });
+        latitude  = pos.coords.latitude;
+        longitude = pos.coords.longitude;
+    } catch (e) {
+        console.warn('GPS tidak tersedia:', e.message);
+    }
+
+    try {
+        const res = await fetch("{{ url_for('admin.karyawan_absen') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json',
+                       'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ karyawan_id: karyawanId, tipe: tipe,
+                                   latitude: latitude, longitude: longitude })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message);
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
+    } catch (err) {
+        alert('Gagal mengirim data: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+}
+</script>
+{% endblock %}
