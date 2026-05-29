@@ -1,3 +1,13 @@
+import os
+
+if os.environ.get('DATABASE_URL'):
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url.startswith('mysql://'):
+        os.environ['DATABASE_URL'] = 'mysql+pymysql://' + db_url[8:]
+
+import pymysql
+pymysql.install_as_MySQLdb()
+
 from app import create_app, db
 from app.models import User, Absensi
 from datetime import datetime
