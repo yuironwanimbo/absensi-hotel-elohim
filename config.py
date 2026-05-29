@@ -12,3 +12,8 @@ class Config:
     HOTEL_LAT = -2.576
     HOTEL_LNG = 140.516
     RADIUS_METERS = 100
+    # Persistent volume for SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'connect_args': {'check_same_thread': False}
+    }
