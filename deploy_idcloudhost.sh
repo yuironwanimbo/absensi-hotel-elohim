@@ -8,14 +8,16 @@ APP_DIR="/var/www/absensi"
 echo "Installing dependencies..."
 apt update
 apt install -y python3-pip python3-venv nginx git curl \
-    libglib2.0-0 libsm6 libxext6 libxrender1 libgl1 \
     libglib2.0-0 libsm6 libxext6 libxrender1 libgl1
 
 echo "Cloning project..."
 mkdir -p $APP_DIR
 cd $APP_DIR
-git clone https://github.com/yuironwanimbo/absensi-hotel-elohim.git . 2>/dev/null || git pull
-git pull
+if [ -d ".git" ]; then
+    git pull
+else
+    git clone https://github.com/yuironwanimbo/absensi-hotel-elohim.git .
+fi
 
 echo "Setting up virtual environment..."
 python3 -m venv venv
@@ -24,7 +26,8 @@ pip install --upgrade pip
 pip install -r requirements.txt gunicorn
 
 # Setup environment
-cat > .env << EOF
+mkdir -p $APP_DIR/instance
+cat > $APP_DIR/.env << EOF
 SECRET_KEY=$(openssl rand -hex 32)
 DATABASE_URL=sqlite:////$APP_DIR/instance/hotel_attendance.db
 HOTEL_LAT=-2.576
@@ -42,6 +45,7 @@ After=network.target
 User=root
 WorkingDirectory=$APP_DIR
 Environment="PATH=$APP_DIR/venv/bin"
+EnvironmentFile=$APP_DIR/.env
 ExecStart=$APP_DIR/venv/bin/gunicorn --bind 0.0.0.0:5000 run:app
 Restart=always
 
